@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Segoe UI', sans-serif; }
+
+/* Dark theme (default) */
+body, body.dark { background: #1E1E24; color: #E8E8EC; }
+body.dark .edit-area textarea { background: #28282E; border: 1px solid #3A3A42; color: #E8E8EC; }
+body.dark .tag { background: #28282E; color: #999; border-color: #3A3A42; }
+body.dark .tag.selected { background: #2A2640; color: #9B8CF8; border-color: #3D3660; }
+body.dark .btn-claude { background: #28282E; color: #E8E8EC; border-color: #3A3A42; }
+
+/* Light theme */
+body.light { background: #FFFFFF; color: #1E1E24; }
+body.light .edit-area textarea { background: #F8F8FA; border: 1px solid #E0E0E4; color: #1E1E24; }
+body.light .tag { background: #F8F8FA; color: #666; border-color: #E0E0E4; }
+body.light .tag.selected { background: #F0EEFE; color: #7B6BF0; border-color: #D4D0F7; }
+body.light .btn-claude { background: #F8F8FA; color: #1E1E24; border-color: #E0E0E4; }
+
+.header {
+    display: flex;
+    -ms-flex-align: center; align-items: center;
+    padding: 16px 16px 8px;
+}
+.dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #7B6BF0; display: inline-block; margin-right: 8px;
+}
+.header-text { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+
+.edit-area { padding: 4px 16px 12px; }
+.edit-area textarea {
+    width: 100%; min-height: 60px; border-radius: 8px; padding: 10px;
+    font-family: 'Segoe UI', sans-serif; font-size: 13px; resize: none;
+    outline: none;
+}
+
+.tags { display: flex; padding: 0 16px 12px; }
+.tag {
+    padding: 5px 14px; border-radius: 14px; font-size: 11px; cursor: pointer;
+    border: 1px solid; -ms-user-select: none; user-select: none;
+    margin-right: 6px; font-weight: 500;
+}
+
+.buttons { display: flex; padding: 0 16px 16px; }
+.btn {
+    -ms-flex: 1; flex: 1; padding: 9px; border-radius: 8px; font-size: 12px;
+    font-weight: 500; cursor: pointer; font-family: 'Segoe UI', sans-serif;
+}
+.btn-save { background: #7B6BF0; color: #FFFFFF; border: none; margin-right: 8px; }
+.btn-claude { border: 1px solid; }
+</style>
+</head>
+<body class="dark">
+
+<div class="header">
+    <span class="dot"></span>
+    <span class="header-text">QUICK NOTE</span>
+</div>
+
+<div class="edit-area">
+    <textarea id="note" placeholder="Type your note..." maxlength="10000"></textarea>
+</div>
+
+<div class="tags" id="tags">
+    <span class="tag" onclick="toggleTag(this)" data-tag="project">project</span>
+    <span class="tag" onclick="toggleTag(this)" data-tag="idea">idea</span>
+    <span class="tag" onclick="toggleTag(this)" data-tag="todo">todo</span>
+    <span class="tag" onclick="toggleTag(this)" data-tag="learning">learning</span>
+</div>
+
+<div class="buttons">
+    <button class="btn btn-save" onclick="doSave()">Save (Ctrl+Enter)</button>
+    <button class="btn btn-claude" onclick="doClaude()">Claude (Ctrl+Shift+Enter)</button>
+</div>
+
+<input type="hidden" id="resultNote" value="">
+<input type="hidden" id="resultTag" value="">
+
+<script>
+var selectedTag = '';
+var MAX_LEN = 10000;
+
+function toggleTag(el) {
+    var tag = el.getAttribute('data-tag');
+    var allTags = document.getElementById('tags').getElementsByTagName('span');
+    if (selectedTag === tag) {
+        selectedTag = '';
+        el.className = 'tag';
+    } else {
+        for (var i = 0; i < allTags.length; i++) allTags[i].className = 'tag';
+        selectedTag = tag;
+        el.className = 'tag selected';
+    }
+}
+
+function sanitizeNote(text) {
+    if (text.length > MAX_LEN) text = text.substring(0, MAX_LEN);
+    // Strip null bytes and control chars except newline/tab
+    text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    return text;
+}
+
+function submitResult(action) {
+    var note = sanitizeNote(document.getElementById('note').value);
+    if (!note.replace(/\s/g, '').length) { document.title = 'CANCEL'; return; }
+    document.getElementById('resultNote').value = note;
+    document.getElementById('resultTag').value = selectedTag;
+    document.title = action;
+}
+
+function doSave() { submitResult('SAVE'); }
+function doClaude() { submitResult('CLAUDE'); }
+
+/* --- Resize: textarea fills available vertical space --- */
+function adjustLayout() {
+    var ta = document.getElementById('note');
+    var header = document.querySelector('.header');
+    var tags = document.querySelector('.tags');
+    var buttons = document.querySelector('.buttons');
+    var bodyH = document.documentElement.clientHeight;
+    var used = header.offsetHeight + tags.offsetHeight + buttons.offsetHeight + 24;
+    var remaining = bodyH - used;
+    if (remaining < 60) remaining = 60;
+    ta.style.height = remaining + 'px';
+}
+window.onresize = adjustLayout;
+
+/* --- Clipboard: handle Ctrl+V/C/X/A since AHK eats accelerators ---
+   Uses IE-era APIs (window.clipboardData, document.selection) intentionally:
+   the popup runs inside an AHK Shell.Explorer (IE11) ActiveX control. --- */
+function doPaste() {
+    try {
+        var text = window.clipboardData.getData('Text');
+        if (!text) return;
+        var ta = document.getElementById('note');
+        ta.focus();
+        if (document.selection) {
+            var sel = document.selection.createRange();
+            sel.text = text;
+        } else {
+            ta.value += text;
+        }
+    } catch(ex) {}
+}
+
+function doCopy() {
+    try {
+        if (document.selection) {
+            var text = document.selection.createRange().text;
+            if (text) window.clipboardData.setData('Text', text);
+        }
+    } catch(ex) {}
+}
+
+function doCut() {
+    try {
+        if (document.selection) {
+            var sel = document.selection.createRange();
+            if (sel.text) {
+                window.clipboardData.setData('Text', sel.text);
+                sel.text = '';
+            }
+        }
+    } catch(ex) {}
+}
+
+function doSelectAll() {
+    try { document.getElementById('note').select(); } catch(ex) {}
+}
+
+function doUndo() {
+    try { document.execCommand('undo'); } catch(ex) {}
+}
+
+document.onkeydown = function(e) {
+    if (e.keyCode === 27) { document.title = 'CANCEL'; return; }
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 13) { e.preventDefault(); doClaude(); return; }
+    if (e.ctrlKey && e.keyCode === 13) { e.preventDefault(); doSave(); return; }
+    if (e.ctrlKey && e.keyCode === 86) { e.preventDefault(); doPaste(); return; }
+    if (e.ctrlKey && e.keyCode === 67) { e.preventDefault(); doCopy(); return; }
+    if (e.ctrlKey && e.keyCode === 88) { e.preventDefault(); doCut(); return; }
+    if (e.ctrlKey && e.keyCode === 65) {
+        e.preventDefault();
+        document.getElementById('note').select();
+        return;
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    adjustLayout();
+    document.getElementById('note').focus();
+});
+</script>
+</body>
+</html>

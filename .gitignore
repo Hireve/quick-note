@@ -1,0 +1,10 @@
+local/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+.superpowers/
+.claude/
+docs/superpowers/
+# Prevent committing personal config placed at root by mistake (use local/ instead)
+quick-note-config.json
