@@ -137,7 +137,7 @@ def test_markdown_with_context():
     assert "tags: [quick-capture, todo]" in md
     assert 'created: "2026-03-22T14:30:52"' in md
     assert 'source: "vscode"' in md
-    assert "# Fix the login bug" in md
+    assert "Fix the login bug" in md
     assert "**From**: vscode -- my-app" in md
 
 def test_markdown_no_tag():
@@ -148,7 +148,7 @@ def test_markdown_no_tag():
         timestamp="2026-03-22T20:00:00",
     )
     assert "tags: [quick-capture]" in md
-    assert "# Some random thought" in md
+    assert "Some random thought" in md
 
 def test_markdown_browser_context():
     md = generate_markdown(

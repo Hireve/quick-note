@@ -216,7 +216,7 @@ source: "{safe_source}"
 context: "{safe_context_fm}"
 ---
 
-# {title}
+{title}
 {body_section}
 {context_section}
 """

@@ -151,6 +151,8 @@ tray.Add("New Note`t" hotkeyDisplay, MenuNewNote)
 tray.Add("Open Inbox", MenuOpenInbox)
 tray.Add()
 tray.Add("Pause Watcher", MenuTogglePause)
+if FileExist(A_Temp "\quick-note-watcher-paused")
+    tray.Check("Pause Watcher")
 tray.Add()
 tray.Add("Dark Mode", MenuToggleDarkMode)
 if (LoadThemePref() = "dark")
@@ -169,12 +171,15 @@ MenuOpenInbox(*) {
     Run("obsidian://open?vault=" VAULT_NAME "&file=" inboxFolder)
 }
 MenuTogglePause(*) {
+    global tray
     pauseFile := A_Temp "\quick-note-watcher-paused"
     if FileExist(pauseFile) {
         FileDelete(pauseFile)
+        tray.Uncheck("Pause Watcher")
         TrayTip("Watcher resumed", "Quick Note", "0x1")
     } else {
         FileAppend("", pauseFile)
+        tray.Check("Pause Watcher")
         TrayTip("Watcher paused", "Quick Note", "0x1")
     }
 }
