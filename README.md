@@ -93,11 +93,10 @@ context: "page: How DNS Works | url: https://example.com/dns-guide"
 
 ## Installation
 
-1. **Install dependencies**
+1. **Install AutoHotkey**
 
    ```
    winget install AutoHotkey.AutoHotkey
-   pip install -r requirements.txt
    ```
 
 2. **Clone the repo**
@@ -107,7 +106,13 @@ context: "page: How DNS Works | url: https://example.com/dns-guide"
    cd quick-note
    ```
 
-3. **Create your config**
+3. **Install Python dependencies**
+
+   ```
+   pip install -r requirements.txt
+   ```
+
+4. **Create your config**
 
    ```
    mkdir local
@@ -127,7 +132,7 @@ context: "page: How DNS Works | url: https://example.com/dns-guide"
 
    The `local/` folder is gitignored -- your config, logs, and runtime files stay private.
 
-4. **Run it**
+5. **Run it**
 
    Double-click `quick-note.ahk` or run from a terminal:
 
@@ -135,7 +140,7 @@ context: "page: How DNS Works | url: https://example.com/dns-guide"
    "%LocalAppData%\Programs\AutoHotkey\v2\AutoHotkey64.exe" "quick-note.ahk"
    ```
 
-5. **Auto-start on login** (optional)
+6. **Auto-start on login** (optional)
 
    Create a shortcut in your Startup folder:
 
