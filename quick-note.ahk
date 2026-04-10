@@ -12,13 +12,35 @@ SetTimer(WatchForChanges, 2000)
 SCRIPT_MOD_TIME := FileGetTime(A_ScriptFullPath, "M")
 
 WatchForChanges() {
-    global SCRIPT_MOD_TIME
+    global SCRIPT_MOD_TIME, CONFIG_MOD_TIME, CONFIG_FILE, HOTKEY_COMBO, ACTIVE_HOTKEY
     try {
         currentMod := FileGetTime(A_ScriptFullPath, "M")
         if (currentMod != SCRIPT_MOD_TIME) {
             SCRIPT_MOD_TIME := currentMod
             DebugLog("WatchForChanges: file modified, calling Reload()")
             Reload()
+        }
+    }
+    ; Check for config file changes and re-register hotkey if it changed
+    try {
+        if FileExist(CONFIG_FILE) {
+            currentConfigMod := FileGetTime(CONFIG_FILE, "M")
+            if (CONFIG_MOD_TIME != "" && currentConfigMod != CONFIG_MOD_TIME) {
+                CONFIG_MOD_TIME := currentConfigMod
+                DebugLog("WatchForChanges: config changed, reloading")
+                oldHotkey := ACTIVE_HOTKEY
+                LoadConfig()
+                if (HOTKEY_COMBO != oldHotkey) {
+                    try Hotkey(oldHotkey, "Off")
+                    try {
+                        Hotkey(HOTKEY_COMBO, MenuNewNote)
+                        ACTIVE_HOTKEY := HOTKEY_COMBO
+                        DebugLog("WatchForChanges: hotkey updated to " HOTKEY_COMBO)
+                    } catch as e {
+                        TrayTip("New hotkey could not be registered: " HOTKEY_COMBO, "Quick Note", "0x10")
+                    }
+                }
+            }
         }
     }
 }
@@ -42,6 +64,8 @@ INBOX_PATH := ""
 VAULT_NAME := ""
 HOTKEY_COMBO := "#+n"
 WATCHER_PID := 0
+CONFIG_MOD_TIME := ""
+ACTIVE_HOTKEY := ""
 
 LoadConfig() {
     global CONFIG_FILE, PYTHON_PATH, INBOX_PATH, VAULT_NAME, HOTKEY_COMBO
@@ -196,6 +220,7 @@ LaunchWatcher() {
     }
 }
 LaunchWatcher()
+CONFIG_MOD_TIME := FileExist(CONFIG_FILE) ? FileGetTime(CONFIG_FILE, "M") : "0"
 
 ; --- System Tray ---
 A_IconTip := "Quick Note Capture"
@@ -270,6 +295,7 @@ CleanupOnExit(reason, code) {
 ; --- Hotkey ---
 try {
     Hotkey HOTKEY_COMBO, MenuNewNote
+    ACTIVE_HOTKEY := HOTKEY_COMBO
 } catch {
     TrayTip("Hotkey " hotkeyDisplay " could not be registered", "Quick Note", "0x10")
 }
@@ -572,5 +598,11 @@ JsonEscape(str) {
     str := StrReplace(str, "`n", "\n")
     str := StrReplace(str, "`r", "\r")
     str := StrReplace(str, "`t", "\t")
-    return '"' str '"'
+    ; Escape remaining ASCII control characters (0x00–0x1F) as \uXXXX
+    out := ""
+    Loop Parse, str {
+        code := Ord(A_LoopField)
+        out .= (code <= 0x1F) ? "\u" Format("{:04X}", code) : A_LoopField
+    }
+    return '"' out '"'
 }

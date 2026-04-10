@@ -1,7 +1,7 @@
 import json
 import logging
 
-from note_watcher import split_notes
+from note_watcher import process_existing_backlog, split_notes
 
 def test_split_double_blank_lines():
     text = "First note here\n\n\nSecond note here"
@@ -87,6 +87,49 @@ def test_process_file_paused(tmp_path, monkeypatch):
 
     md_files = list(inbox.glob("*.md"))
     assert len(md_files) == 0  # paused, nothing created
+
+
+def test_process_file_no_duplicate_on_append(tmp_path, monkeypatch):
+    """Appending a new note to a processed file must import only the new chunk."""
+    from note_watcher import process_file
+
+    txt_file = tmp_path / "notes.txt"
+    txt_file.write_text("First note", encoding="utf-8")
+
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    config = {"inbox_path": str(inbox), "log_path": str(tmp_path / "test.log")}
+    monkeypatch.setattr("note_watcher.PROCESSED_DB", str(tmp_path / "processed.json"))
+
+    logger = logging.getLogger("test-dedup")
+    process_file(str(txt_file), config, logger)
+    assert len(list(inbox.glob("*.md"))) == 1
+
+    # Append a second note — only the new chunk should be imported
+    txt_file.write_text("First note\n\n\nSecond note", encoding="utf-8")
+    process_file(str(txt_file), config, logger)
+
+    files = list(inbox.glob("*.md"))
+    assert len(files) == 2, "First note must not be re-created on append"
+
+
+def test_startup_backlog_is_processed(tmp_path, monkeypatch):
+    """Files already in the watch folder at startup must be imported, not skipped."""
+    watch_path = tmp_path / "watch"
+    watch_path.mkdir()
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    config = {"inbox_path": str(inbox), "log_path": str(tmp_path / "test.log")}
+    monkeypatch.setattr("note_watcher.PROCESSED_DB", str(tmp_path / "processed.json"))
+
+    # Create a file as if it arrived while the watcher was down
+    (watch_path / "backlog.txt").write_text("Backlog note", encoding="utf-8")
+
+    logger = logging.getLogger("test-backlog")
+    process_existing_backlog(str(watch_path), config, logger)
+
+    md_files = list(inbox.glob("*.md"))
+    assert len(md_files) == 1, "Backlog note must be imported at startup"
 
 
 def test_process_file_retries_after_failed_save(tmp_path, monkeypatch):

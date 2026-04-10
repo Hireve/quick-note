@@ -12,11 +12,26 @@ from pathlib import Path
 
 
 def setup_logging(log_path: str) -> logging.Logger:
+    """Configure rotating file logging for quick-note.
+
+    Idempotent: subsequent calls with a different log_path are ignored; the
+    first caller's path wins. Document this at the call site if the path must
+    match a runtime config value.
+
+    Args:
+        log_path: Path to the log file.  A bare filename (no directory
+            component) is valid and writes to the current working directory.
+
+    Returns:
+        The configured ``quick-note`` logger.
+    """
     logger = logging.getLogger("quick-note")
     if logger.handlers:
         return logger
     logger.setLevel(logging.INFO)
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    log_dir = os.path.dirname(log_path)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
     handler = RotatingFileHandler(
         log_path, maxBytes=1_000_000, backupCount=3, encoding="utf-8"
     )
@@ -58,7 +73,8 @@ def infer_tag(note_text: str) -> str:
         return ""
     lower = note_text.strip().lower()
     words = lower.split()
-    first_word = words[0] if words else ""
+    # Strip trailing punctuation and split on em-dash to handle "fix:" and "bug—text"
+    first_word = words[0].split("\u2014")[0].rstrip(":,.!?-") if words else ""
     if first_word in _TODO_VERBS or first_word in _TODO_STARTS:
         return "todo"
     for phrase in _IDEA_STARTS:
@@ -84,6 +100,18 @@ _TERMINALS = {"WindowsTerminal.exe", "git-bash.exe", "mintty.exe", "bash.exe", "
 
 
 def resolve_context(window_title: str, process_name: str, url: str = "") -> dict:
+    """Enrich a captured window title and process name into a structured context dict.
+
+    Args:
+        window_title: The title of the active window at capture time.
+        process_name: The executable name of the active process (e.g. ``chrome.exe``).
+        url: Optional URL from the browser's address bar.
+
+    Returns:
+        Dict with at least a ``source`` key.  Browser contexts include ``page``
+        (and optionally ``url``).  VS Code contexts include ``project``.
+        Terminal contexts include ``project`` or ``window``.
+    """
     if not window_title and not process_name:
         return {"source": "unknown"}
 
@@ -140,6 +168,15 @@ def _parse_terminal_project(title: str) -> str:
 
 
 def build_filename(note_text: str, timestamp: str) -> str:
+    """Build a kebab-case filename from the first five words of a note and its timestamp.
+
+    Args:
+        note_text: The raw note content; slug is derived from its first line.
+        timestamp: ISO-8601 timestamp string (microseconds are stripped).
+
+    Returns:
+        A filename of the form ``YYYY-MM-DD-HHmmss-slug.md``.
+    """
     slug = generate_slug(note_text)
     # Truncate to seconds (remove microseconds if present)
     ts_clean = timestamp[:19]  # "2026-03-22T14:30:52"
@@ -178,6 +215,19 @@ def _format_context_frontmatter(context: dict) -> str:
 
 
 def generate_markdown(note: str, tag: str, context: dict, timestamp: str) -> str:
+    """Render a note as Obsidian-ready markdown with YAML frontmatter.
+
+    Args:
+        note: Raw note text.  First line becomes the title; remaining lines
+            become the body.
+        tag: User-selected or inferred tag (e.g. ``"todo"``).  Empty string
+            means no secondary tag.
+        context: Structured context dict from :func:`resolve_context`.
+        timestamp: ISO-8601 timestamp for the ``created`` frontmatter field.
+
+    Returns:
+        Complete markdown string ready to be written to the inbox.
+    """
     tags = ["quick-capture"]
     if tag:
         tags.append(tag)
@@ -186,16 +236,17 @@ def generate_markdown(note: str, tag: str, context: dict, timestamp: str) -> str
     source = context.get("source", "unknown")
     context_fm = _format_context_frontmatter(context)
     safe_context_fm = (
-        context_fm.replace("\\", "/")
+        context_fm.replace("\\", "\\\\")
         .replace('"', '\\"')
         .replace("\n", " ")
         .replace("\r", "")
     )
-    safe_source = source.replace('"', '\\"').replace("\n", " ").replace("\r", "")
+    safe_source = source.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").replace("\r", "")
 
     # First line = title, rest = body (if multi-line)
     lines = note.split("\n", 1)
-    title = lines[0][0].upper() + lines[0][1:] if lines[0] else "Untitled"
+    first_line = lines[0].strip()
+    title = (first_line[0].upper() + first_line[1:]) if first_line else "Untitled"
     body = lines[1].strip() if len(lines) > 1 else ""
 
     display_time = timestamp[:16].replace("T", " ")
@@ -232,6 +283,23 @@ def save_note(
     log_path: str = "",
     url: str = "",
 ) -> bool:
+    """Enrich and persist a captured note to the Obsidian inbox as a markdown file.
+
+    Args:
+        note: Raw note text to save.
+        tag: Explicit tag (e.g. ``"todo"``).  Empty string triggers auto-inference.
+        window_title: Title of the active window when the note was captured.
+        process_name: Executable name of the active process.
+        timestamp: ISO-8601 capture timestamp.
+        inbox_path: Absolute path to the Obsidian inbox directory.
+        log_path: Optional path to the rotating log file.  Falls back to
+            ``NullHandler`` if omitted.
+        url: Optional browser URL to embed in the context.
+
+    Returns:
+        ``True`` on success, ``False`` if ``inbox_path`` does not exist or
+        the file cannot be written.
+    """
     if log_path:
         logger = setup_logging(log_path)
     else:
@@ -288,13 +356,18 @@ def main():
         print("Error: 'note' field is missing or empty", file=sys.stderr)
         sys.exit(1)
 
+    inbox_path = config.get("inbox_path")
+    if not inbox_path:
+        print("Error: 'inbox_path' missing from config", file=sys.stderr)
+        sys.exit(1)
+
     success = save_note(
         note=note,
         tag=data.get("tag", ""),
         window_title=data.get("window_title", ""),
         process_name=data.get("process_name", ""),
         timestamp=data.get("timestamp", datetime.now().isoformat()),
-        inbox_path=config["inbox_path"],
+        inbox_path=inbox_path,
         log_path=config.get("log_path", ""),
         url=data.get("url", ""),
     )

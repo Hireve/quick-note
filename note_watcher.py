@@ -5,14 +5,15 @@ import json
 import logging
 import os
 import re
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
 
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
-from note_capture import save_note, load_config, setup_logging
+from note_capture import load_config, save_note, setup_logging
 
 
 PROCESSED_DB = os.path.join(os.environ.get("TEMP", "/tmp"), "quick-note-processed.json")
@@ -43,34 +44,38 @@ def _save_processed_db(db: dict[str, str]) -> None:
         json.dump(db, f, indent=2)
 
 
-def _content_hash(filepath: str) -> str:
-    with open(filepath, encoding="utf-8", errors="replace") as f:
-        return hashlib.sha256(f.read().encode()).hexdigest()
-
-
 def process_file(filepath: str, config: dict, logger: logging.Logger):
-    """Process a single Notepad++ file into Inbox notes."""
+    """Process a single text file into Inbox notes, tracking per-chunk imports.
+
+    Deduplication is keyed on per-chunk content hashes rather than a whole-file
+    hash.  This means appending a new note to a file only imports the new chunk,
+    and a partial-batch failure on retry only re-attempts unimported chunks.
+
+    Args:
+        filepath: Path to the ``.txt`` file to process.
+        config: Loaded quick-note config dict; must contain ``inbox_path``.
+        logger: Logger instance for progress and error reporting.
+    """
     if os.path.exists(PAUSE_FLAG):
         logger.info("Watcher paused, skipping: %s", filepath)
         return
 
     db = _load_processed_db()
+    raw = db.get(filepath, [])
+    # Migrate from old whole-file-hash format (string) to chunk-hash list
+    imported_chunks: set[str] = set(raw) if isinstance(raw, list) else set()
 
-    with open(filepath, encoding="utf-8", errors="replace") as f:
-        content = f.read()
-    current_hash = hashlib.sha256(content.encode()).hexdigest()
-
-    if db.get(filepath) == current_hash:
-        logger.info("Already processed (unchanged): %s", filepath)
-        return
+    with open(filepath, "rb") as f:
+        content = f.read().decode("utf-8", errors="replace")
 
     chunks = split_notes(content)
     timestamp = datetime.now().isoformat(timespec="seconds")
     source_name = Path(filepath).stem
-    all_saved = True
 
     for i, chunk in enumerate(chunks):
-        # Use a fresh timestamp per chunk; build_filename handles filename collisions via counter
+        chunk_hash = hashlib.sha256(chunk.encode()).hexdigest()
+        if chunk_hash in imported_chunks:
+            continue
         chunk_ts = datetime.now().isoformat(timespec="seconds") if i > 0 else timestamp
         if not save_note(
             note=chunk,
@@ -82,15 +87,17 @@ def process_file(filepath: str, config: dict, logger: logging.Logger):
             log_path=config.get("log_path", ""),
         ):
             logger.error("Failed to create inbox note from: %s", filepath)
-            all_saved = False
-            break
+            if imported_chunks:
+                # Persist progress so successful chunks aren't re-imported on retry
+                db[filepath] = list(imported_chunks)
+                _save_processed_db(db)
+            else:
+                logger.warning("Leaving file unmarked for retry: %s", filepath)
+            return
+        imported_chunks.add(chunk_hash)
         logger.info("Created inbox note from: %s", filepath)
 
-    if not all_saved:
-        logger.warning("Leaving file unmarked for retry: %s", filepath)
-        return
-
-    db[filepath] = current_hash
+    db[filepath] = list(imported_chunks)
     _save_processed_db(db)
 
 
@@ -98,14 +105,16 @@ class NoteHandler(FileSystemEventHandler):
     def __init__(self, config: dict, logger: logging.Logger):
         self.config = config
         self.logger = logger
-        self._pending = {}
+        self._pending: dict[str, float] = {}
+        self._lock = threading.Lock()
 
     def on_modified(self, event):
         if event.is_directory:
             return
         if not event.src_path.endswith(".txt"):
             return
-        self._pending[event.src_path] = time.time()
+        with self._lock:
+            self._pending[event.src_path] = time.time()
 
     def on_created(self, event):
         self.on_modified(event)
@@ -113,26 +122,35 @@ class NoteHandler(FileSystemEventHandler):
     def check_pending(self):
         """Call periodically to process debounced files."""
         now = time.time()
-        ready = [p for p, t in self._pending.items() if now - t >= 2.0]
+        with self._lock:
+            ready = [p for p, t in self._pending.items() if now - t >= 2.0]
+            for filepath in ready:
+                del self._pending[filepath]
         for filepath in ready:
-            del self._pending[filepath]
             try:
                 process_file(filepath, self.config, self.logger)
             except Exception as e:
                 self.logger.error("Error processing %s: %s", filepath, e)
 
 
-def snapshot_existing(watch_path: str) -> dict[str, str]:
-    """Take a content hash snapshot of existing files at startup."""
+def process_existing_backlog(watch_path: str, config: dict, logger: logging.Logger) -> None:
+    """Process any .txt files already in the watch folder at startup.
+
+    Prunes stale DB entries, then imports any chunks not yet seen from existing
+    files.  Notes captured while the watcher was down are imported here rather
+    than silently skipped.
+
+    Args:
+        watch_path: Directory to scan for ``.txt`` files.
+        config: Loaded quick-note config dict.
+        logger: Logger instance.
+    """
     db = _load_processed_db()
-    # Prune entries for files that no longer exist
     db = {k: v for k, v in db.items() if os.path.exists(k)}
-    for f in Path(watch_path).glob("*.txt"):
-        filepath = str(f)
-        if filepath not in db:
-            db[filepath] = _content_hash(filepath)
     _save_processed_db(db)
-    return db
+
+    for f in Path(watch_path).glob("*.txt"):
+        process_file(str(f), config, logger)
 
 
 def main():
@@ -157,7 +175,7 @@ def main():
         logger.warning("Watch path not found, retrying in 30s (%d/%d): %s", retries, max_retries, watch_path)
         time.sleep(30)
 
-    snapshot_existing(watch_path)
+    process_existing_backlog(watch_path, config, logger)
     logger.info("Watcher started, monitoring: %s", watch_path)
 
     handler = NoteHandler(config, logger)

@@ -1,3 +1,5 @@
+import sys
+import pytest
 from note_capture import generate_slug
 
 def test_slug_basic():
@@ -50,6 +52,12 @@ def test_tag_empty():
 
 def test_tag_action_in_middle_no_match():
     assert infer_tag("the user wants to fix something") == ""
+
+def test_tag_fix_with_colon():
+    assert infer_tag("fix: login button not working") == "todo"
+
+def test_tag_bug_with_em_dash():
+    assert infer_tag("bug\u2014CSS is broken") == "todo"
 
 
 from note_capture import resolve_context
@@ -104,6 +112,7 @@ def test_context_terminal_wt():
     assert ctx["source"] == "terminal"
     assert ctx["project"] == "myapp"
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows path parsing required")
 def test_context_terminal_cmd_path():
     ctx = resolve_context(r"C:\Users\youruser\Documents\github\quick-note", "WindowsTerminal.exe")
     assert ctx["source"] == "terminal"
@@ -167,6 +176,22 @@ def test_build_filename():
 def test_build_filename_timestamp_format():
     name = build_filename("hello world", "2026-01-05T09:05:03")
     assert name == "2026-01-05-090503-hello-world.md"
+
+
+def test_setup_logging_bare_filename(tmp_path, monkeypatch):
+    """Regression: setup_logging('quick-note.log') must not crash (no directory component)."""
+    import logging
+
+    from note_capture import setup_logging
+
+    monkeypatch.chdir(tmp_path)
+    logger = logging.getLogger("quick-note")
+    for h in logger.handlers[:]:
+        h.close()
+        logger.removeHandler(h)
+    result = setup_logging("bare-regression-test.log")
+    assert result is not None
+    assert (tmp_path / "bare-regression-test.log").exists()
 
 
 def test_save_note_creates_file(tmp_path):
@@ -246,7 +271,7 @@ def test_markdown_yaml_escape_quotes():
         timestamp="2026-03-22T10:00:00",
     )
     # The YAML context line should have escaped quotes
-    assert '\\"React\\"' in md or "React" in md
+    assert '\\"React\\"' in md
     # Frontmatter should not have unescaped double quotes breaking YAML
     lines = md.split("\n")
     for line in lines:

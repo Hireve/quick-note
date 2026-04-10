@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-SCRIPT_PATH = Path(__file__).with_name("quick-note.ahk")
+SCRIPT_PATH = Path(__file__).resolve().parent.parent / "quick-note.ahk"
 
 
 def read_script() -> str:
